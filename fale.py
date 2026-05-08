@@ -9,7 +9,6 @@ def main(page: ft.Page):
     usuario_atual = ""
     chat = ft.Column(expand=True, scroll="always", spacing=10)
 
-    # Função que cria os balõezinhos bonitos
     def criar_balao(texto, autor):
         sou_eu = (autor == usuario_atual)
         alinhamento = "end" if sou_eu else "start"
@@ -79,12 +78,11 @@ def main(page: ft.Page):
                 ft.Text("Chat Família", size=30, weight="bold"),
                 nome_input,
                 ft.ElevatedButton("Entrar no Chat", on_click=entrar)
-            ], horizontal_alignment="center", horizontal_alignment="center"),
+            ], horizontal_alignment="center"),
             padding=50, alignment=ft.alignment.center
         )
     )
 
 if __name__ == "__main__":
-    # O SEGREDO ESTÁ AQUI: Pegar a porta que o Render manda
     porta = int(os.environ.get("PORT", 8080))
     ft.app(target=main, view=ft.AppView.WEB_BROWSER, port=porta, host="0.0.0.0")
