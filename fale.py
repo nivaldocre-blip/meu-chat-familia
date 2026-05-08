@@ -1,4 +1,5 @@
 import flet as ft
+import os # ESSA LINHA É NOVA
 
 def main(page: ft.Page):
     page.title = "Chat Família"
@@ -81,9 +82,5 @@ def main(page: ft.Page):
     )
 
 if __name__ == "__main__":
-    import os
-    # Pega a porta que o servidor (Render) mandar, ou usa 8080 por padrão
-    port = int(os.getenv("PORT", 8080))
-    
-    # Roda o app como servidor web acessível por qualquer IP
-    ft.app(target=main, view=None, host="0.0.0.0", port=port)
+    # ESSA LINHA ABAIXO É O QUE FAZ FUNCIONAR NO RENDER:
+    ft.app(target=main, view=None, port=int(os.getenv("PORT", 8080)), host="0.0.0.0")
