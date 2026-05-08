@@ -2,7 +2,7 @@ import flet as ft
 import os
 import sqlite3
 
-# --- BANCO DE DADOS (Para as mensagens não sumirem) ---
+# --- BANCO DE DADOS ---
 def init_db():
     conn = sqlite3.connect("chat.db", check_same_thread=False)
     cursor = conn.cursor()
@@ -17,13 +17,14 @@ def main(page: ft.Page):
     page.title = "Chat Família"
     page.theme_mode = "light"
     
-    # Criamos uma variável simples para o nome
-    page.session.set("user", "")
+    # Criamos uma lista simples para controlar o nome do usuário nesta aba
+    dados_usuario = {"nome": ""}
     
     chat = ft.Column(expand=True, scroll="always", spacing=10)
 
     def criar_balao(texto, autor):
-        sou_eu = (autor == page.session.get("user"))
+        # Compara o autor da mensagem com o nome que você digitou ao entrar
+        sou_eu = (autor == dados_usuario["nome"])
         alinhamento = ft.MainAxisAlignment.END if sou_eu else ft.MainAxisAlignment.START
         cor_fundo = "#005c4b" if sou_eu else "#333333"
         
@@ -67,29 +68,32 @@ def main(page: ft.Page):
     )
 
     def enviar(e):
-        user = page.session.get("user")
+        user = dados_usuario["nome"]
         if txt_msg.value and user:
+            # Salva no banco de dados
             cursor = db_conn.cursor()
             cursor.execute("INSERT INTO mensagens (autor, texto) VALUES (?, ?)", (user, txt_msg.value))
             db_conn.commit()
+            # Envia para todos
             page.pubsub.send_all({"autor": user, "texto": txt_msg.value})
             txt_msg.value = ""
             page.update()
 
+    nome_input = ft.TextField(label="Seu Nome", width=300)
+
     def entrar_clique(e):
         if nome_input.value:
-            page.session.set("user", nome_input.value)
+            dados_usuario["nome"] = nome_input.value
             page.clean()
             page.add(
                 ft.Container(
-                    content=ft.Text(f"Logado como: {nome_input.value}", color="white", weight="bold"),
+                    content=ft.Text(f"Logado como: {dados_usuario['nome']}", color="white", weight="bold"),
                     bgcolor="#008069", padding=15
                 ),
                 ft.Container(content=chat, expand=True, padding=10),
                 ft.Container(
                     content=ft.Row([
                         txt_msg, 
-                        # Corrigido: usando ElevatedButton para evitar erro de ícone
                         ft.ElevatedButton("Enviar", on_click=enviar) 
                     ]),
                     padding=10
@@ -98,8 +102,7 @@ def main(page: ft.Page):
             carregar_historico()
             page.update()
 
-    nome_input = ft.TextField(label="Seu Nome", width=300)
-    
+    # Tela de Login Inicial
     page.add(
         ft.Container(
             content=ft.Column([
@@ -113,5 +116,4 @@ def main(page: ft.Page):
 
 if __name__ == "__main__":
     porta = int(os.environ.get("PORT", 8080))
-    # Adicionamos o assets_dir para evitar erros de armazenamento
     ft.app(target=main, view=ft.AppView.WEB_BROWSER, port=porta, host="0.0.0.0")
