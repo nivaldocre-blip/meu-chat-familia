@@ -2,9 +2,8 @@ import flet as ft
 import os
 import sqlite3
 
-# --- BANCO DE DADOS (Para não apagar as mensagens) ---
+# --- BANCO DE DADOS ---
 def init_db():
-    # check_same_thread=False é vital para funcionar no servidor
     conn = sqlite3.connect("chat.db", check_same_thread=False)
     cursor = conn.cursor()
     cursor.execute('''CREATE TABLE IF NOT EXISTS mensagens 
@@ -18,14 +17,11 @@ def main(page: ft.Page):
     page.title = "Chat Família"
     page.theme_mode = "light"
     
-    # Variável simples para o nome (evita erro de Session)
     usuario = {"nome": ""}
-    
     chat = ft.Column(expand=True, scroll="always", spacing=10)
 
     def criar_balao(texto, autor):
         sou_eu = (autor == usuario["nome"])
-        
         return ft.Row(
             controls=[
                 ft.Container(
@@ -45,8 +41,8 @@ def main(page: ft.Page):
             alignment=ft.MainAxisAlignment.END if sou_eu else ft.MainAxisAlignment.START
         )
 
-    # Carrega o histórico do banco de dados ao entrar
-    def carregar_mensagens():
+    def carregar_mensagens(e=None):
+        chat.controls.clear()
         cursor = db_conn.cursor()
         cursor.execute("SELECT autor, texto FROM mensagens ORDER BY id ASC")
         for row in cursor.fetchall():
@@ -63,15 +59,16 @@ def main(page: ft.Page):
 
     def enviar(e):
         if txt_msg.value and usuario["nome"]:
-            # Salva no arquivo do banco de dados
-            cursor = db_conn.cursor()
-            cursor.execute("INSERT INTO mensagens (autor, texto) VALUES (?, ?)", (usuario["nome"], txt_msg.value))
-            db_conn.commit()
-            
-            # Envia para todos na tela
-            page.pubsub.send_all({"autor": usuario["nome"], "texto": txt_msg.value})
-            txt_msg.value = ""
-            page.update()
+            try:
+                cursor = db_conn.cursor()
+                cursor.execute("INSERT INTO mensagens (autor, texto) VALUES (?, ?)", (usuario["nome"], txt_msg.value))
+                db_conn.commit()
+                page.pubsub.send_all({"autor": usuario["nome"], "texto": txt_msg.value})
+                txt_msg.value = ""
+                page.update()
+            except:
+                # Se der erro ao enviar, ele tenta recarregar as mensagens
+                carregar_mensagens()
 
     nome_input = ft.TextField(label="Seu Nome", width=300)
 
@@ -79,19 +76,26 @@ def main(page: ft.Page):
         if nome_input.value:
             usuario["nome"] = nome_input.value
             page.clean()
+            # BARRA SUPERIOR COM BOTÃO DE ATUALIZAR
             page.add(
-                ft.Container(content=ft.Text(f"Logado como: {usuario['nome']}", color="white"), bgcolor="#008069", padding=15),
+                ft.Container(
+                    content=ft.Row([
+                        ft.Text(f"Chat: {usuario['nome']}", color="white", weight="bold", expand=True),
+                        ft.IconButton(icon=ft.icons.REFRESH, icon_color="white", on_click=carregar_mensagens)
+                    ]),
+                    bgcolor="#008069", padding=10
+                ),
                 chat,
                 ft.Container(content=ft.Row([txt_msg, ft.ElevatedButton("Enviar", on_click=enviar)]), padding=10)
             )
-            carregar_mensagens() # Puxa as conversas antigas aqui
-            page.update()
+            carregar_mensagens()
 
-    # Tela Inicial simples (sem frescura para não dar erro)
     page.add(
-        ft.Text("Chat Família", size=30, weight="bold"),
-        nome_input,
-        ft.ElevatedButton("Entrar", on_click=entrar)
+        ft.Column([
+            ft.Text("Chat Família", size=30, weight="bold"),
+            nome_input,
+            ft.ElevatedButton("Entrar", on_click=entrar)
+        ], horizontal_alignment=ft.CrossAxisAlignment.CENTER)
     )
 
 if __name__ == "__main__":
