@@ -31,7 +31,7 @@ def main(page: ft.Page):
             page.add(
                 ft.Text(f"Logado como: {usuario_atual}", weight="bold"),
                 chat,
-                ft.Row([txt_msg, ft.IconButton(icon="send", on_click=enviar)])
+                ft.Row([txt_msg, ft.ElevatedButton("Enviar", on_click=enviar)])
             )
             page.update()
 
