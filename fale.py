@@ -1,10 +1,10 @@
 import flet as ft
+import os
 
 def main(page: ft.Page):
-    page.title = "Chat Pai e Filho"
+    page.title = "Chat Família"
     page.theme_mode = "light"
-    # Força a atualização da página para evitar o cinza
-    page.update()
+    page.padding = 0
     
     usuario_atual = ""
     chat = ft.Column(expand=True, scroll="always", spacing=10)
@@ -72,15 +72,19 @@ def main(page: ft.Page):
             )
             page.update()
 
-    # Layout de entrada simplificado
     page.add(
-        ft.Column([
-            ft.Text("Chat Pai e Filho", size=30, weight="bold"),
-            nome_input,
-            ft.ElevatedButton("Entrar no Chat", on_click=entrar)
-        ], horizontal_alignment="center")
+        ft.Container(
+            content=ft.Column([
+                ft.Text("Chat Família", size=30, weight="bold"),
+                nome_input,
+                ft.ElevatedButton("Entrar no Chat", on_click=entrar)
+            ], horizontal_alignment="center"),
+            padding=50, 
+            alignment=ft.alignment.center
+        )
     )
-    page.update()
+
 if __name__ == "__main__":
+    # Configuração vital para o Render não dar tela cinza
     porta = int(os.environ.get("PORT", 8080))
     ft.app(target=main, view=ft.AppView.WEB_BROWSER, port=porta, host="0.0.0.0")
