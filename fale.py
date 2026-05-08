@@ -16,6 +16,8 @@ db_conn = init_db()
 def main(page: ft.Page):
     page.title = "Chat Família"
     page.theme_mode = "light"
+    # IMPORTANTE: Isso ajuda o app a não "morrer" em segundo plano
+    page.auto_scroll = True 
     
     usuario = {"nome": ""}
     chat = ft.Column(expand=True, scroll="always", spacing=10)
@@ -41,8 +43,8 @@ def main(page: ft.Page):
             alignment=ft.MainAxisAlignment.END if sou_eu else ft.MainAxisAlignment.START
         )
 
-    def carregar_mensagens(e=None):
-        chat.controls.clear()
+    def carregar_mensagens():
+        chat.controls.clear() # Limpa para não duplicar na reconexão
         cursor = db_conn.cursor()
         cursor.execute("SELECT autor, texto FROM mensagens ORDER BY id ASC")
         for row in cursor.fetchall():
@@ -55,7 +57,12 @@ def main(page: ft.Page):
 
     page.pubsub.subscribe(on_message)
 
-    txt_msg = ft.TextField(hint_text="Mensagem...", expand=True, border_radius=20, on_submit=lambda _: enviar(None))
+    txt_msg = ft.TextField(
+        hint_text="Mensagem...", 
+        expand=True, 
+        border_radius=20, 
+        on_submit=lambda _: enviar(None)
+    )
 
     def enviar(e):
         if txt_msg.value and usuario["nome"]:
@@ -67,8 +74,8 @@ def main(page: ft.Page):
                 txt_msg.value = ""
                 page.update()
             except:
-                # Se der erro ao enviar, ele tenta recarregar as mensagens
-                carregar_mensagens()
+                # Se falhar (perdeu conexão), tenta recarregar a página
+                page.update()
 
     nome_input = ft.TextField(label="Seu Nome", width=300)
 
@@ -76,15 +83,8 @@ def main(page: ft.Page):
         if nome_input.value:
             usuario["nome"] = nome_input.value
             page.clean()
-            # BARRA SUPERIOR COM BOTÃO DE ATUALIZAR
             page.add(
-                ft.Container(
-                    content=ft.Row([
-                        ft.Text(f"Chat: {usuario['nome']}", color="white", weight="bold", expand=True),
-                        ft.IconButton(icon=ft.icons.REFRESH, icon_color="white", on_click=carregar_mensagens)
-                    ]),
-                    bgcolor="#008069", padding=10
-                ),
+                ft.Container(content=ft.Text(f"Chat: {usuario['nome']}", color="white"), bgcolor="#008069", padding=15),
                 chat,
                 ft.Container(content=ft.Row([txt_msg, ft.ElevatedButton("Enviar", on_click=enviar)]), padding=10)
             )
@@ -100,4 +100,5 @@ def main(page: ft.Page):
 
 if __name__ == "__main__":
     porta = int(os.environ.get("PORT", 8080))
+    # 'view=ft.AppView.WEB_BROWSER' é o que permite o "Adicionar à tela inicial" funcionar bem
     ft.app(target=main, view=ft.AppView.WEB_BROWSER, port=porta, host="0.0.0.0")
